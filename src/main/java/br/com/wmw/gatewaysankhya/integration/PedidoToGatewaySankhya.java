@@ -118,6 +118,7 @@ public class PedidoToGatewaySankhya {
 		sql.append(NM_COLUNA_DSCONTROLE_ERP).append(" = ").append(dsMensagemErp);
 		sql.append(" WHERE ");
 		return null;
+		
 	}
 
 
