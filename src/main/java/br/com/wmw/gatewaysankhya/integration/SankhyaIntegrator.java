@@ -14,6 +14,7 @@ import org.springframework.stereotype.Service;
 
 import br.com.wmw.framework.util.LockUtil;
 import br.com.wmw.framework.util.ValueUtil;
+import br.com.wmw.framework.util.WatchTime;
 import br.com.wmw.framework.util.database.metadata.MetadataUtil;
 import br.com.wmw.framework.util.database.metadata.Table;
 import br.com.wmw.gatewaysankhya.service.PersistenceService;
@@ -23,6 +24,7 @@ public class SankhyaIntegrator {
 
 	private static final String LOCK_DOMINIO = "SANKHYA2TMPINT";
 	private static Log log = LogFactory.getLog(SankhyaIntegrator.class);
+	private static final String sqlServico = "SELECT DSAPELIDO FROM TBWMWCONFIGENTIDADEINTEG WHERE NMENTIDADE = '";
 	
 	@Inject
 	private PersistenceService persistenceService;
@@ -34,7 +36,7 @@ public class SankhyaIntegrator {
 	private String importTablePrefix;
 	
 	public void execute() {
-		List<String> entidadeList = jdbcTemplate.queryForList("SELECT NMENTIDADE FROM TBWMWCONFIGENTIDADEINTEG WHERE DSTIPOINTEGRACAO = 'SANKHYA'", String.class);
+		List<String> entidadeList = jdbcTemplate.queryForList("SELECT NMENTIDADE FROM TBWMWCONFIGENTIDADEINTEG WHERE DSTIPOINTEGRACAO = 'SANKHYA' AND FLENTIDADEIMPORTACAO = 'S'", String.class);
 		if (ValueUtil.isEmpty(entidadeList)) {
 			log.warn("Nenhuma entidade encontrada para a importação de dados.");
 			return;
@@ -46,11 +48,10 @@ public class SankhyaIntegrator {
 		log.info("Iniciando importação de dados do Gateway Sankhya");
 		try {
 			LockUtil.getInstance().initExportConcurrentControl(LOCK_DOMINIO, 5000, 60000);
-			String sql = "SELECT DSAPELIDO FROM TBWMWCONFIGENTIDADEINTEG WHERE NMENTIDADE = '";
 			for (String nmEntidade : entidades) {
-				Object nmServico;
+				String nmServico;
 				try {
-					nmServico = jdbcTemplate.queryForObject(sql + nmEntidade + "' AND DSTIPOINTEGRACAO = 'SANKHYA'", Object.class);
+					nmServico = jdbcTemplate.queryForObject(sqlServico + nmEntidade + "' AND DSTIPOINTEGRACAO = 'SANKHYA' AND FLENTIDADEIMPORTACAO = 'S'", String.class);
 					if (nmServico == null) {
 						log.error("Não foi encontrada a ConfigEntidadeInteg para a entidade " + nmEntidade);
 						continue;
@@ -61,8 +62,15 @@ public class SankhyaIntegrator {
 				}
 				log.info("Iniciando importação de dados para a entidade " + nmServico);
 				Table table = MetadataUtil.extractTableMetadata(jdbcTemplate.getDataSource(), importTablePrefix + nmEntidade);
+				if (table == null) {
+					log.error("A tabela " + importTablePrefix + nmEntidade + " não foi encontrada!");
+					continue;
+				}
 				String dsFiltrosConsulta = getFiltrosConsulta(table.getTableName(), nmEntidade);
-				String jSonResult = importaDadosGatewaySankhya.importaDados(ValueUtil.toString(nmServico), table.getColumns(), dsFiltrosConsulta);
+				WatchTime watch = new WatchTime(getClass().getName(), "importaDados" + nmEntidade);
+				watch.start();
+				String jSonResult = importaDadosGatewaySankhya.importaDados(nmServico, table.getColumns(), dsFiltrosConsulta);
+				log.debug("Retorno do gateway em " + watch.stop() + " milessegundos");
 				String retorno = persistenceService.persisteDados(nmEntidade, jSonResult);
 				if (retorno != null) log.info(retorno);
 			}

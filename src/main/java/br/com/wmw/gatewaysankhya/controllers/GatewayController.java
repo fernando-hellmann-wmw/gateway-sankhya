@@ -2,6 +2,7 @@ package br.com.wmw.gatewaysankhya.controllers;
 
 
 import java.util.Arrays;
+import java.util.Date;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -17,6 +18,8 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.ResponseBody;
 
 import br.com.wmw.framework.util.ValueUtil;
+import br.com.wmw.gatewaysankhya.integration.EntidadeGenericaToGatewaySankhya;
+import br.com.wmw.gatewaysankhya.integration.NovoClienteToGatewaySankhya;
 import br.com.wmw.gatewaysankhya.integration.PedidoToGatewaySankhya;
 import br.com.wmw.gatewaysankhya.integration.SankhyaIntegrator;
 
@@ -26,11 +29,22 @@ import br.com.wmw.gatewaysankhya.integration.SankhyaIntegrator;
 public class GatewayController {
 
 	private static final Logger log = LoggerFactory.getLogger(GatewayController.class);
+	private static final String TODAS_ENTIDADES = "TODAS";
 	
 	@Inject 
 	private SankhyaIntegrator sankhyaIntegrator;
 	@Inject 
 	private PedidoToGatewaySankhya pedidoToGatewaySankhya;
+	@Inject 
+	private NovoClienteToGatewaySankhya novoClienteToGatewaySankhya;
+	@Inject
+	private EntidadeGenericaToGatewaySankhya entidadeGenericaToGatewaySankhya;
+	
+	@SuppressWarnings("rawtypes")
+	@GetMapping(value = "/echo")
+	public ResponseEntity echo() {
+		return ResponseEntity.status(HttpStatus.OK).body("Echo " + new Date());
+	}
 	
 	@SuppressWarnings("rawtypes")
 	@ResponseBody
@@ -38,6 +52,7 @@ public class GatewayController {
 	public ResponseEntity importaDados() {
 		log.info("Acionada importação de dados.");
 		sankhyaIntegrator.execute();
+		log.info("Finalizada importação de dados.");
 		return ResponseEntity.status(HttpStatus.OK).body("Importação finalizada com sucesso!");
 	}
 	
@@ -52,6 +67,7 @@ public class GatewayController {
 		}
 		List<String> entidadeList = Arrays.asList(entidades.split(","));
 		sankhyaIntegrator.execute(entidadeList);
+		log.info("Finalizada importação parcial de dados para as entidades " + entidades);
 		return ResponseEntity.status(HttpStatus.OK).body("Importação finalizada com sucesso!");
 	}
 
@@ -61,6 +77,35 @@ public class GatewayController {
 	public ResponseEntity enviaPedido() {
 		log.info("Acionado envio de pedidos para o gateway sankhya.");
 		pedidoToGatewaySankhya.execute();
+		log.info("Finalizado envio de pedidos para o gateway sankhya.");
 		return ResponseEntity.status(HttpStatus.OK).body("Envio de pedidos finalizado com sucesso!");
+	}
+
+	@SuppressWarnings("rawtypes")
+	@ResponseBody
+	@GetMapping(value = "/envianovocliente")
+	public ResponseEntity enviaNovoCliente() {
+		log.info("Acionado envio de novos clientes para o gateway sankhya.");
+		novoClienteToGatewaySankhya.execute();
+		log.info("Finalizado envio de novos clientes para o gateway sankhya.");
+		return ResponseEntity.status(HttpStatus.OK).body("Envio de novos clientes finalizado com sucesso!");
+	}
+
+	@SuppressWarnings("rawtypes")
+	@ResponseBody
+	@GetMapping(value = "/envia/{entidades}")
+	public ResponseEntity envia(@PathVariable String entidades) {
+		if (ValueUtil.isEmpty(entidades)) {
+			return ResponseEntity.status(HttpStatus.OK).body("Nenhuma entidade informada para o envio de dados!");
+		}
+		log.info("Acionado envio das entidades " + entidades + " para o gateway sankhya.");
+		if (TODAS_ENTIDADES.equalsIgnoreCase(entidades)) {
+			entidadeGenericaToGatewaySankhya.execute();
+		} else {
+			List<String> entidadeList = Arrays.asList(entidades.split(","));
+			entidadeGenericaToGatewaySankhya.execute(entidadeList);
+		}
+		log.info("Finalizado envio das entidades " + entidades + " para o gateway sankhya.");
+		return ResponseEntity.status(HttpStatus.OK).body("Envio de entidades finalizado com sucesso!");
 	}
 }
