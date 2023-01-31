@@ -31,7 +31,6 @@ public class NovoClienteToGatewaySankhya extends BaseEnvioToGatewaySankhya {
 	public void execute() {
 		LockUtil.getInstance().initExportConcurrentControl(this.getClass().getSimpleName(), 2000, 300000);
 		log.info("Inicio do envio de novos clientes para o gateway sankhya.");
-		log.trace("Trace");
 		try {
 			Table novoClienteTable = MetadataUtil.extractTableMetadata(jdbcTemplate.getDataSource(), exportTablePrefix + NMENTIDADENOVOCLIENTE);
 			if (! validateTable(novoClienteTable)) {
