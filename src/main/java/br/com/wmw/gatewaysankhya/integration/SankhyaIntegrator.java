@@ -24,8 +24,9 @@ public class SankhyaIntegrator {
 
 	private static final String LOCK_DOMINIO = "SANKHYA2TMPINT";
 	private static Log log = LogFactory.getLog(SankhyaIntegrator.class);
-	private static final String sqlServico = "SELECT DSAPELIDO FROM TBWMWCONFIGENTIDADEINTEG WHERE NMENTIDADE = '";
 	
+	@Inject
+	private LoginGatewaySankhya loginGatewaySankhya;
 	@Inject
 	private PersistenceService persistenceService;
 	@Inject
@@ -36,7 +37,7 @@ public class SankhyaIntegrator {
 	private String importTablePrefix;
 	
 	public void execute() {
-		List<String> entidadeList = jdbcTemplate.queryForList("SELECT NMENTIDADE FROM TBWMWCONFIGENTIDADEINTEG WHERE DSTIPOINTEGRACAO = 'SANKHYA' AND FLENTIDADEIMPORTACAO = 'S'", String.class);
+		List<String> entidadeList = jdbcTemplate.queryForList("SELECT NMENTIDADE FROM TBWMWCONFIGENTIDADEINTEG WHERE DSTIPOINTEGRACAO = 'Sankhya' AND FLENTIDADEIMPORTACAO = 'S' AND FLATIVO = 'S'", String.class);
 		if (ValueUtil.isEmpty(entidadeList)) {
 			log.warn("Nenhuma entidade encontrada para a importação de dados.");
 			return;
@@ -51,7 +52,7 @@ public class SankhyaIntegrator {
 			for (String nmEntidade : entidades) {
 				String nmServico;
 				try {
-					nmServico = jdbcTemplate.queryForObject(sqlServico + nmEntidade + "' AND DSTIPOINTEGRACAO = 'SANKHYA' AND FLENTIDADEIMPORTACAO = 'S'", String.class);
+					nmServico = jdbcTemplate.queryForObject("SELECT DSAPELIDO FROM TBWMWCONFIGENTIDADEINTEG WHERE NMENTIDADE = '" + nmEntidade + "' AND DSTIPOINTEGRACAO = 'Sankhya' AND FLENTIDADEIMPORTACAO = 'S' AND FLATIVO = 'S'", String.class);
 					if (nmServico == null) {
 						log.error("Não foi encontrada a ConfigEntidadeInteg para a entidade " + nmEntidade);
 						continue;
@@ -67,12 +68,18 @@ public class SankhyaIntegrator {
 					continue;
 				}
 				String dsFiltrosConsulta = getFiltrosConsulta(table.getTableName(), nmEntidade);
-				WatchTime watch = new WatchTime(getClass().getName(), "importaDados" + nmEntidade);
-				watch.start();
-				String jSonResult = importaDadosGatewaySankhya.importaDados(nmServico, table.getColumns(), dsFiltrosConsulta);
-				log.debug("Retorno do gateway em " + watch.stop() + " milessegundos");
-				String retorno = persistenceService.persisteDados(nmEntidade, jSonResult);
-				if (retorno != null) log.info(retorno);
+				int offSet = 0;
+				String jSonResult = "";
+				boolean hasMoreResults;
+				String loginToken = loginGatewaySankhya.login();
+				do {
+					WatchTime watch = new WatchTime(getClass().getName(), "importaDados" + nmEntidade);
+					watch.start();
+					jSonResult = importaDadosGatewaySankhya.importaDados(loginToken, nmServico, table.getColumns(), dsFiltrosConsulta, offSet);
+					log.debug("Retorno do gateway em " + watch.stop() + " milessegundos");
+					hasMoreResults = persistenceService.persisteDados(nmEntidade, jSonResult);
+					offSet++;
+				} while (hasMoreResults);
 			}
 		} catch (Exception e) {
 			log.error(e);
@@ -81,6 +88,7 @@ public class SankhyaIntegrator {
 			log.info("Finalizada importação de dados do Gateway Sankhya");
 		}
 	}
+
 
 	private String getFiltrosConsulta(String tableName, String nmEntidade) {
 		String jsonFilter = null;

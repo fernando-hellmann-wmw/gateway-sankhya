@@ -20,6 +20,7 @@ import br.com.wmw.framework.util.database.metadata.Column;
 @Service
 public class ImportaDadosGatewaySankhya {
 
+
 	@Inject
 	private LoginGatewaySankhya loginGatewaySankhya;
 	@Value("${url.importacao:}")
@@ -37,32 +38,41 @@ public class ImportaDadosGatewaySankhya {
 	
 	private static RestTemplate restTemplate = new RestTemplate();
 	
-	public String importaDados(String dsServico, List<Column> columnList, String dsFiltrosJson) {
-		String loginToken = loginGatewaySankhya.login();
+	public String importaDados(String loginToken, String dsServico, List<Column> columnList, String dsFiltrosJson, int offSet) {
+		return importaDados(loginToken, dsServico, columnList, dsFiltrosJson, offSet, true);
+	}
+	public String importaDados(String loginToken, String dsServico, List<Column> columnList, String dsFiltrosJson, int offSet, boolean tryNewLogin) {
 		HttpHeaders headerPost = new HttpHeaders();
 		headerPost.set(contentType, applicationJson);
 		headerPost.set(tokenHeader, getParamDecode(token));
 		headerPost.set(appkeyHeader, getParamDecode(appkey));
 		headerPost.set(authorization, bearer + loginToken);
-		String body = getRequestBody(dsServico, columnList, dsFiltrosJson);
+		String body = getRequestBody(dsServico, columnList, dsFiltrosJson, offSet);
 		HttpEntity<String> postRequest = new HttpEntity<>(body, headerPost);
 		try {
 			ResponseEntity<String> result = restTemplate.postForEntity(url, postRequest, String.class);
 			return result.getBody();
-		 } catch(HttpClientErrorException e) {
-            throw new UnexpectedException(e.getResponseBodyAsString());
+		 } catch (HttpClientErrorException e) {
+			 if (e.getStatusCode().value() == 401 && tryNewLogin) {
+				 String loginTokenNew = loginGatewaySankhya.login();
+				 return importaDados(loginTokenNew, dsServico, columnList, dsFiltrosJson, offSet, false);
+			 } else {
+				 throw new UnexpectedException(e.getResponseBodyAsString());
+			 }
 	     }
 	}
 
-	private String getRequestBody(String dsApelido, List<Column> columnList, String dsFiltrosJson) {
+	private String getRequestBody(String dsApelido, List<Column> columnList, String dsFiltrosJson, int offSet) {
 		StringBuilder body = new StringBuilder();
 		body.append(" {" );
 		body.append(" \"serviceName\": \"CRUDServiceProvider.loadRecords\", ");
 		body.append(" \"requestBody\": { ");
 		body.append(" \"dataSet\": { ");
 		body.append(" \"rootEntity\": \"" + dsApelido + "\", ");
-		body.append(" \"includePresentationFields\": \"N\", ");
-		body.append(" \"offsetPage\": \"0\", ");
+		body.append(" \"includePresentationFields\": \"S\", ");
+		body.append(" \"offsetPage\": \"");
+		body.append(offSet);
+		body.append("\", ");
 		body.append(" \"criteria\": { ");
 		body.append(" \"expression\": {");
 		if (ValueUtil.isNotEmpty(dsFiltrosJson)) {

@@ -36,19 +36,20 @@ public class PersistenceService {
 	private String importTablePrefix;
 
 	
-	public String persisteDados(String nmEntidade, String jsonData) {
+	public boolean persisteDados(String nmEntidade, String jsonData) {
 		JSONObject json = new JSONObject(jsonData);
 		String status = json.get("status").toString();
 		if (! statusSucesso.equals(status)) {
 			String statusMessage = json.get("statusMessage").toString();
 			log.error("Houve um erro na importação da entidade " + nmEntidade + ". " + statusMessage);
-			return null;
+			return false;
 		}
 		json = json.getJSONObject(resposeBodyTag).getJSONObject(entitiesTag);
 		String qtRegistros = new String(json.get("total").toString());
+		boolean hasMoreResults = json.getBoolean("hasMoreResult");
 		if (ValueUtil.toInteger(qtRegistros) == null || ValueUtil.toInteger(qtRegistros) == 0) {
 			log.info("Nenhum registro encontrado para importação da tabela " + nmEntidade);
-			return null;
+			return false;
 		}
 		StringBuilder jSonEntity = null;
 		if (ValueUtil.toInteger(qtRegistros) > 1) {
@@ -70,7 +71,8 @@ public class PersistenceService {
 		PersistResult result = new PersistResult(entrySql.getInsertDate(), entrySql.getInsertTime());
 		SaveDataWriter saveDataWriter = new SaveDataWriter(jdbcTemplate.getDataSource(), entrySql, result);
 		saveDataWriter.push();
-		return result.asJson();
+		log.info(result.asJson());
+		return hasMoreResults;
 	}
 
 }

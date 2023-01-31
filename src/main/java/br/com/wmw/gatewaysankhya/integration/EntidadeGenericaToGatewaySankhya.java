@@ -29,7 +29,7 @@ public class EntidadeGenericaToGatewaySankhya extends BaseEnvioToGatewaySankhya 
 	
 	public void execute() {
 		try {
-			List<String> entidadeList = jdbcTemplate.queryForList("SELECT NMENTIDADE FROM TBWMWCONFIGENTIDADEINTEG WHERE DSTIPOINTEGRACAO = 'SANKHYA' AND FLENTIDADEIMPORTACAO <> 'S'", String.class);
+			List<String> entidadeList = jdbcTemplate.queryForList("SELECT NMENTIDADE FROM TBWMWCONFIGENTIDADEINTEG WHERE DSTIPOINTEGRACAO = 'Sankhya' AND (FLENTIDADEIMPORTACAO <> 'S' OR FLENTIDADEIMPORTACAO IS NULL) AND FLATIVO = 'S'", String.class);
 			execute(entidadeList);
 		} catch (Exception e) {
 			log.error("Ocorreu um erro ao buscar as entidades para envio de dados ao gateway sankhya.", e);
@@ -51,7 +51,7 @@ public class EntidadeGenericaToGatewaySankhya extends BaseEnvioToGatewaySankhya 
 				log.debug("Encontrados " + envioList.size() + " registro(s) para envio.");
 				String nmServico;
 				try {
-					nmServico = jdbcTemplate.queryForObject(sqlServico + nmEntidade + "' AND DSTIPOINTEGRACAO = 'SANKHYA'", String.class);
+					nmServico = jdbcTemplate.queryForObject(sqlServico + nmEntidade + "' AND DSTIPOINTEGRACAO = 'Sankhya' AND (FLENTIDADEIMPORTACAO <> 'S' OR FLENTIDADEIMPORTACAO IS NULL) AND FLATIVO = 'S'", String.class);
 					if (nmServico == null) {
 						log.error("Não foi encontrada a ConfigEntidadeInteg para a entidade " + nmEntidade);
 						continue;
@@ -87,9 +87,8 @@ public class EntidadeGenericaToGatewaySankhya extends BaseEnvioToGatewaySankhya 
 				"serviceName":"CRUDServiceProvider.saveRecord",
 				 "requestBody":{
 				    "dataSet":{
-				       "rootEntity":" 
-				        """ + nmServico + """ 
-				        ", 
+				       "rootEntity":" """ + nmServico + """ 
+", 
 				       "includePresentationFields":"S",
 				       "dataRow":{
 				          "localFields":{
@@ -101,7 +100,7 @@ public class EntidadeGenericaToGatewaySankhya extends BaseEnvioToGatewaySankhya 
 	}
 	
 	private String addRodape() {
-		return "}}}";
+		return "}}, \"entity\":{}}}}";
 	}
 
 	private int defineRetorno(Map<String, Object> mapEntidade, List<Column> pkList, String retorno, String nmEntidade) {

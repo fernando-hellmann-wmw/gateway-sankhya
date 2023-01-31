@@ -5,12 +5,11 @@ import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import br.com.wmw.framework.util.LockUtil;
 import br.com.wmw.framework.util.ValueUtil;
 import br.com.wmw.framework.util.WatchTime;
@@ -32,6 +31,7 @@ public class NovoClienteToGatewaySankhya extends BaseEnvioToGatewaySankhya {
 	public void execute() {
 		LockUtil.getInstance().initExportConcurrentControl(this.getClass().getSimpleName(), 2000, 300000);
 		log.info("Inicio do envio de novos clientes para o gateway sankhya.");
+		log.trace("Trace");
 		try {
 			Table novoClienteTable = MetadataUtil.extractTableMetadata(jdbcTemplate.getDataSource(), exportTablePrefix + NMENTIDADENOVOCLIENTE);
 			if (! validateTable(novoClienteTable)) {
