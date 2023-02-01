@@ -1,15 +1,14 @@
 package br.com.wmw.gatewaysankhya.integration;
 
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.json.JSONObject;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
-import org.apache.commons.logging.Log;
-import org.apache.commons.logging.LogFactory;
+
 import br.com.wmw.framework.util.LockUtil;
 import br.com.wmw.framework.util.ValueUtil;
 import br.com.wmw.framework.util.WatchTime;
@@ -51,7 +50,7 @@ public class NovoClienteToGatewaySankhya extends BaseEnvioToGatewaySankhya {
 				if (statusRetorno == STATUS_RETORNO_SUCESSO && ValueUtil.isNotEmpty(urlProcedureDados2Erp)) {
 					Object cdEmpresa = mapNovoCliente.get(NM_COLUNA_CDEMPRESA);
 					Object cdRepresentante = mapNovoCliente.get(NM_COLUNA_CDREPRESENTANTE);
-					acionaProcedureDados2Erp(cdEmpresa, cdRepresentante);
+					acionaProcedureDados2Erp(NMENTIDADENOVOCLIENTE, cdEmpresa, cdRepresentante);
 				}
 			}
 		} catch (Exception e) {
@@ -125,21 +124,7 @@ public class NovoClienteToGatewaySankhya extends BaseEnvioToGatewaySankhya {
 			dsMensagemErp = dsMensagemErp.replace("'", "\"");
 			log.info(String.format("Não foi possível integrar o novocliente. Detalhes: %s", mapNovoCliente.toString()));
 		}
-		PreparedStatement ps = null;
-		try {
-			ps = getPreparedStatement(mapNovoCliente, cdNovoCliente, flControleErp, dsMensagemErp, pkList, NMENTIDADENOVOCLIENTE, NM_COLUNA_CDNOVOCLIENTE);
-			ps.executeUpdate();
-		} catch (Exception e) {
-			log.error("Ocorreu um erro ao atualizar o retorno do novocliente " + mapNovoCliente.toString(), e);
-		} finally {
-			try {
-				if (ps != null) {
-					ps.close();
-				}
-			} catch (SQLException e) {
-				log.error(e);
-			}
-		}
+		atualizaRetorno(mapNovoCliente, cdNovoCliente, flControleErp, dsMensagemErp, pkList, NMENTIDADENOVOCLIENTE, NM_COLUNA_CDNOVOCLIENTE);
 		return status;
 	}
 

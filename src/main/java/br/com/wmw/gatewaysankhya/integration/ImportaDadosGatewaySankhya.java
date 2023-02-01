@@ -29,12 +29,12 @@ public class ImportaDadosGatewaySankhya {
 	private String token;
 	@Value("${appkey:}")
 	private String appkey;
-	private final static String contentType = "Content-Type";
-	private final static String tokenHeader = "token";
-	private final static String appkeyHeader = "appkey";
-	private final static String authorization = "Authorization";
-	private final static String bearer = "Bearer ";
-	private final static String applicationJson = "application/json";
+	private static final String contentType = "Content-Type";
+	private static final String tokenHeader = "token";
+	private static final String appkeyHeader = "appkey";
+	private static final String authorization = "Authorization";
+	private static final String bearer = "Bearer ";
+	private static final String applicationJson = "application/json";
 	
 	private static RestTemplate restTemplate = new RestTemplate();
 	

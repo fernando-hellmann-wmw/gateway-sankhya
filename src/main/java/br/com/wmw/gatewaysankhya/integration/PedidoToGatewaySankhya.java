@@ -1,7 +1,5 @@
 package br.com.wmw.gatewaysankhya.integration;
 
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
@@ -61,7 +59,7 @@ public class PedidoToGatewaySankhya extends BaseEnvioToGatewaySankhya {
 				if (statusRetorno == STATUS_RETORNO_SUCESSO && ValueUtil.isNotEmpty(urlProcedureDados2Erp)) {
 					Object cdEmpresa = mapPedido.get(NM_COLUNA_CDEMPRESA);
 					Object cdRepresentante = mapPedido.get(NM_COLUNA_CDREPRESENTANTE);
-					acionaProcedureDados2Erp(cdEmpresa, cdRepresentante);
+					acionaProcedureDados2Erp(NMENTIDADEPEDIDO, cdEmpresa, cdRepresentante);
 				}
 			}
 		} catch (Exception e) {
@@ -112,21 +110,7 @@ public class PedidoToGatewaySankhya extends BaseEnvioToGatewaySankhya {
 			dsMensagemErp = dsMensagemErp.replace("'", "\"");
 			log.info(String.format("Não foi possível integrar o pedido. Detalhes: %s", mapPedido.toString()));
 		}
-		PreparedStatement ps = null;
-		try {
-			ps = getPreparedStatement(mapPedido, nuPedidoRelacionado, flControleErp, dsMensagemErp, pkList, NMENTIDADEPEDIDO, NM_COLUNA_NUPEDIDORELACIONADO);
-			ps.executeUpdate();
-		} catch (Exception e) {
-			log.error("Ocorreu um erro ao atualizar o retorno do pedido " + mapPedido.toString(), e);
-		} finally {
-			try {
-				if (ps != null) {
-					ps.close();
-				}
-			} catch (SQLException e) {
-				log.error(e);
-			}
-		}
+		atualizaRetorno(mapPedido, nuPedidoRelacionado, flControleErp, dsMensagemErp, pkList, NMENTIDADEPEDIDO, NM_COLUNA_NUPEDIDORELACIONADO);
 		return status;
 	}
 

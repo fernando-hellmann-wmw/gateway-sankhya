@@ -1,7 +1,5 @@
 package br.com.wmw.gatewaysankhya.integration;
 
-import java.sql.PreparedStatement;
-import java.sql.SQLException;
 import java.util.List;
 import java.util.Map;
 
@@ -122,21 +120,7 @@ public class EntidadeGenericaToGatewaySankhya extends BaseEnvioToGatewaySankhya 
 			dsMensagemErp = dsMensagemErp.replace("'", "\"");
 			log.info(String.format("Não foi possível integrar o novocliente. Detalhes: %s", mapEntidade.toString()));
 		}
-		PreparedStatement ps = null;
-		try {
-			ps = getPreparedStatement(mapEntidade, null, flControleErp, dsMensagemErp, pkList, nmEntidade, null);
-			ps.executeUpdate();
-		} catch (Exception e) {
-			log.error("Ocorreu um erro ao atualizar o retorno da entidade  " + nmEntidade + ". Registro " + mapEntidade.toString(), e);
-		} finally {
-			try {
-				if (ps != null) {
-					ps.close();
-				}
-			} catch (SQLException e) {
-				log.error(e);
-			}
-		}
+		atualizaRetorno(mapEntidade, null, flControleErp, dsMensagemErp, pkList, nmEntidade, null);
 		return status;
 	}
 

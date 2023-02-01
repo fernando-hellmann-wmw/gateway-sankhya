@@ -7,8 +7,8 @@ import java.util.List;
 
 import javax.inject.Inject;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Controller;
@@ -28,7 +28,7 @@ import br.com.wmw.gatewaysankhya.integration.SankhyaIntegrator;
 @RequestMapping("gatewaysankhya")
 public class GatewayController {
 
-	private static final Logger log = LoggerFactory.getLogger(GatewayController.class);
+	private static final Log log = LogFactory.getLog(GatewayController.class);
 	private static final String TODAS_ENTIDADES = "TODAS";
 	
 	@Inject 

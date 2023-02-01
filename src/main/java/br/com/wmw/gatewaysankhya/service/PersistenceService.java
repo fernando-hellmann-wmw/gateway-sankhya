@@ -28,6 +28,10 @@ public class PersistenceService {
 	private static final String metadataTag = "metadata";
 	private static final String fieldsTag = "fields";
 	private static final String statusSucesso = "1";
+	private static final String hasMoreResultsTag = "hasMoreResult";
+	private static final String totalTag = "total";
+	private static final String statusTag = "status";	
+	private static final String statusMessageTag = "statusMessage";
 	
 	@Inject
 	JdbcTemplate jdbcTemplate = new JdbcTemplate();
@@ -38,15 +42,15 @@ public class PersistenceService {
 	
 	public boolean persisteDados(String nmEntidade, String jsonData) {
 		JSONObject json = new JSONObject(jsonData);
-		String status = json.get("status").toString();
+		String status = json.get(statusTag).toString();
 		if (! statusSucesso.equals(status)) {
-			String statusMessage = json.get("statusMessage").toString();
+			String statusMessage = json.get(statusMessageTag).toString();
 			log.error("Houve um erro na importação da entidade " + nmEntidade + ". " + statusMessage);
 			return false;
 		}
 		json = json.getJSONObject(resposeBodyTag).getJSONObject(entitiesTag);
-		String qtRegistros = new String(json.get("total").toString());
-		boolean hasMoreResults = json.getBoolean("hasMoreResult");
+		String qtRegistros = json.get(totalTag).toString();
+		boolean hasMoreResults = json.getBoolean(hasMoreResultsTag);
 		if (ValueUtil.toInteger(qtRegistros) == null || ValueUtil.toInteger(qtRegistros) == 0) {
 			log.info("Nenhum registro encontrado para importação da tabela " + nmEntidade);
 			return false;

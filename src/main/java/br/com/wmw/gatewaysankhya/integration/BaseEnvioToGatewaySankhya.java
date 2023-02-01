@@ -1,5 +1,6 @@
 package br.com.wmw.gatewaysankhya.integration;
 
+import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.Types;
@@ -31,10 +32,10 @@ public class BaseEnvioToGatewaySankhya {
 
 	private static final Log log = LogFactory.getLog(BaseEnvioToGatewaySankhya.class);
 	
-	protected final static String contentType = "Content-Type";
-	protected final static String authorization = "Authorization";
-	protected final static String bearer = "Bearer ";
-	protected final static String applicationJson = "application/json";
+	protected static final String contentType = "Content-Type";
+	protected static final String authorization = "Authorization";
+	protected static final String bearer = "Bearer ";
+	protected static final String applicationJson = "application/json";
 	protected static final String CONTROLE_ENVIADO_AUTOMATICO_OK = "E";
 	protected static final String CONTROLE_ENVIADO_AUTOMATICO_ERRO = "X";
 	protected static final String NM_COLUNA_CONTROLE_ERP = "FLCONTROLEERP";
@@ -137,40 +138,47 @@ public class BaseEnvioToGatewaySankhya {
 		return new String(Base64.decodeBase64(param));
 	}
 	
-	protected PreparedStatement getPreparedStatement(Map<String, Object> map, String cdRetorno, String flControleErp, String dsMensagemErp, List<Column> pkList, String nmEntidade, String nmColunaRetorno) throws SQLException {
-		PreparedStatement ps = null;
-		StringBuilder sql = new StringBuilder();
-		sql.append("UPDATE ").append(exportTablePrefix).append(nmEntidade);
-		sql.append(" SET ");
-		sql.append(NM_COLUNA_CONTROLE_ERP).append(" = '").append(flControleErp).append("'");
-		if (cdRetorno != null) {
-			sql.append(",");
-			sql.append(nmColunaRetorno).append(" = '").append(cdRetorno).append("'");
-		}
-		if (dsMensagemErp != null) {
-			sql.append(",");
-			sql.append(NM_COLUNA_DSCONTROLE_ERP).append(" = '").append(dsMensagemErp).append("'");
-		}
-		sql.append(" WHERE ");
-		for (Column column : pkList) {
-			String columnName = column.getColumnName();
-			sql.append(columnName).append(" = ?");
-			sql.append(" AND ");
-		}
-		ps = jdbcTemplate.getDataSource().getConnection().prepareStatement(sql.substring(0, sql.length() - 4));
-		
-		int count = 0;
-		for (Column column : pkList) {
-			String columnName = column.getColumnName();
-			sql.append(columnName).append(" = ").append(map.get(columnName));
-			StatementCreatorUtils.setParameterValue(ps, count + 1, column.getDataType(), map.get(columnName));
-			count++;
-		}
-		
-		return ps;
+	protected void atualizaRetorno(Map<String, Object> map, String cdRetorno, String flControleErp, String dsMensagemErp, List<Column> pkList, String nmEntidade, String nmColunaRetorno) {
+		try (Connection conn = getConnection();) {
+			StringBuilder sql = new StringBuilder();
+			sql.append("UPDATE ").append(exportTablePrefix).append(nmEntidade);
+			sql.append(" SET ");
+			sql.append(NM_COLUNA_CONTROLE_ERP).append(" = '").append(flControleErp).append("'");
+			if (cdRetorno != null) {
+				sql.append(",");
+				sql.append(nmColunaRetorno).append(" = '").append(cdRetorno).append("'");
+			}
+			if (dsMensagemErp != null) {
+				sql.append(",");
+				sql.append(NM_COLUNA_DSCONTROLE_ERP).append(" = '").append(dsMensagemErp).append("'");
+			}
+			sql.append(" WHERE ");
+			for (Column column : pkList) {
+				String columnName = column.getColumnName();
+				sql.append(columnName).append(" = ?");
+				sql.append(" AND ");
+			}
+			String updateSql = sql.substring(0, sql.length() - 4);
+			try (PreparedStatement ps = conn.prepareStatement(updateSql);) {
+				int count = 0;
+				for (Column column : pkList) {
+					String columnName = column.getColumnName();
+					sql.append(columnName).append(" = ").append(map.get(columnName));
+					StatementCreatorUtils.setParameterValue(ps, count + 1, column.getDataType(), map.get(columnName));
+					count++;
+				}
+				ps.executeUpdate();
+			}
+		} catch (Exception e) {
+			log.error("Ocorreu um erro ao atualizar o retorno da entidade  " + nmEntidade + ". Registro " + map.toString(), e);
+		} 
 	}
 	
-	protected void acionaProcedureDados2Erp(Object cdEmpresa, Object cdRepresentante) {
+	private Connection getConnection() throws SQLException {
+		return jdbcTemplate.getDataSource().getConnection();
+	}
+
+	protected void acionaProcedureDados2Erp(String nmEntidade, Object cdEmpresa, Object cdRepresentante) {
 		boolean addHttp = ! urlProcedureDados2Erp.startsWith("http");
 		boolean addSeparator = ! urlProcedureDados2Erp.endsWith("/");
 		StringBuilder url = new StringBuilder();  
@@ -181,7 +189,7 @@ public class BaseEnvioToGatewaySankhya {
 		if (addSeparator) {
 			url.append("/");
 		}
-		url.append(cdEmpresa + "/" + cdRepresentante);
+		url.append(nmEntidade + "," + cdEmpresa + "," + cdRepresentante);
 		log.info("Acionando procedure dados2erp " + url);
 		String response = "";
 		try {
