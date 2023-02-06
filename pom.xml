@@ -13,7 +13,7 @@
 	<groupId>br.com.wmw.gatewaysankhya</groupId>
 	<artifactId>gatewaysankhya</artifactId>
 	<version>0.0.1-SNAPSHOT</version>
-	<packaging>jar</packaging>
+	<packaging>war</packaging>
 	<name>gatewaysankhya</name>
 	<description>Gateway Sankhya Spring Boot project</description>
 	
